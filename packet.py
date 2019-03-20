@@ -37,7 +37,7 @@ class Packet:
         buf.extend(self.peer_port.to_bytes(2, byteorder='big'))
 
         buf.extend(self.payload)
-
+        
         return buf
 
     def __repr__(self, *args, **kwargs):

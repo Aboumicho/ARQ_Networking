@@ -1,6 +1,6 @@
 import argparse
 import socket
-
+import os
 from packet import Packet
 
 
@@ -71,6 +71,13 @@ def response_server(conn, data, sender):
     try:      
         p = Packet.from_bytes(data)
         if(p.packet_type == 0 ):
+                request = p.payload.decode("utf-8").split(" ")
+                dir_path = os.path.dirname(os.path.realpath(__file__))
+                filename = request[1].strip("/localhost/")
+                #If url provided is a directory
+                #if (os.path.isdir(dir_path + "/" + filename)):
+                print(dir_path + "/" + filename)
+                print(request)
                 print("------ DATA RECEIVED ---------")
                 print("Router: ", sender)
                 print("Packet: ", p)
