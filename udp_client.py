@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 import urllib.request
 import os
 
-def run_client(router_addr, router_port, server_addr, server_port):
+def run_client(router_addr, router_port, server_addr, server_port, args):
     peer_ip = ipaddress.ip_address(socket.gethostbyname(server_addr))
     conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     timeout = 5
@@ -74,7 +74,15 @@ def syn(router_addr, router_port, server_addr, server_port):
     except socket.timeout:
         print('No response after {}s'.format(timeout))
     finally:
-        ack(router_addr, router_port, server_addr, server_port, p)
+        """
+            *********
+            Loops until Handshake is completed
+            Ack() returns True when Packet TYPE = 3 
+
+            *********
+        """
+        while(ack(router_addr, router_port, server_addr, server_port, p) == False ):
+            print()
         conn.close()
 
 def ack(router_addr, router_port, server_addr, server_port, p):
@@ -99,6 +107,7 @@ def ack(router_addr, router_port, server_addr, server_port, p):
             print('Payload: ' + p.payload.decode("utf-8"))
             print("----------------------------- \n")
             conn.sendto(p.to_bytes(), (router_addr, router_port))
+            return False
         """
         
         If a SYN-ACK Packet Type
@@ -111,9 +120,12 @@ def ack(router_addr, router_port, server_addr, server_port, p):
             #p.payload = "ACK" 
             print("Packet: ", p) 
             print("--------End SYN-ACK MSG---------\n\n")
+            return True
 
     except socket.timeout:
         print('No response after {}s'.format(timeout))
+        return False
+    return False
 
 def server_request(args, message):
     peer_ip = ipaddress.ip_address(socket.gethostbyname(args.serverhost))
@@ -165,7 +177,7 @@ def map_request(args):
     if args.command == "post":
         message = post_server(args)
     #Send request to server
-    server_request(args, message)	
+    #server_request(args, message)	
 
 # Usage:
 # python echoclient.py --routerhost localhost --routerport 3000 --serverhost localhost --serverport 8007
@@ -182,5 +194,4 @@ parser.add_argument('url', type=str, action="store", help="Url HTTP request is s
 
 args = parser.parse_args()
 
-map_request(args)
-run_client(args.routerhost, args.routerport, args.serverhost, args.serverport)
+run_client(args.routerhost, args.routerport, args.serverhost, args.serverport, args)
