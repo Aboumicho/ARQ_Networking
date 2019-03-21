@@ -11,6 +11,7 @@ Packet Types
 2: ack
 3: syn-ack
 4: NACK
+5: Starting Transfer
 """
 
 
@@ -41,7 +42,7 @@ class Packet:
         return buf
 
     def __repr__(self, *args, **kwargs):
-        return "#%d, peer=%s:%s, size=%d" % (self.seq_num, self.peer_ip_addr, self.peer_port, len(self.payload))
+        return "#%d, peer=%s:%s, size=%d \n" % (self.seq_num, self.peer_ip_addr, self.peer_port, len(self.payload))
 
     @staticmethod
     def from_bytes(raw):
