@@ -209,7 +209,7 @@ def get_server(args):
 
 def post_server(args):
     print(args)
-    message = "POST " + args.url + " HTTP/1.1 " + "Host :  "+ args.serverhost + " " + "User-Agent : Concordia-HTTP/1.0 "
+    message = "POST " + args.url + " HTTP/1.1 " + "Host:"+ args.serverhost + " " + "User-Agent:Concordia-HTTP/1.0"
     return message
 	#connect_server("localhost", message, args)
 	

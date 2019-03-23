@@ -13,3 +13,6 @@ class Queue:
 
     def setSize(self, n):
         self.size = n
+        
+    def reset(self):
+        self.list = []

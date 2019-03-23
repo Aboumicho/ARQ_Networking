@@ -16,8 +16,6 @@ def run_server(port):
         message = Message()
         pq = Queue()
         while True:
-            if(pq.size > 0 ):
-                    print("*************\nGetting ready to reconstruct {} packets \n\n***********".format(pq.size))
             data, sender = conn.recvfrom(1024)
             handle_client(conn, data, sender, message, pq)
 
@@ -77,42 +75,125 @@ def response_server(conn, data, sender, message, pq):
 
     try:
         p = Packet.from_bytes(data)
+        """
+        When all packets from a request were finally delivered
+
+        """
         if(p.packet_type == 5):
               n = int(p.payload.decode("utf-8"))
-              pq.setSize(n)  
+              pq.setSize(n) 
+              print(pq)
+              #print(message.message)
+              map_request(message.message, conn, sender, p)
+              message.message=""
+              pq.reset()
 
         if(p.packet_type == 0 ):
                 message.append(p.payload.decode("utf-8"))
                 pq.add(p)
-                #dir_path = os.path.dirname(os.path.realpath(__file__))
-                #filename = request[1]
-
-                #print(dir_path + "/" + filename)
-                #print(os.path.isfile(dir_path + "/" + filename))
-                print("------ DATA RECEIVED ---------")
+                print("------ PACKET RECEIVED ---------")
                 print("Router: ", sender)
                 print("Packet: ", p)
                 print("Payload: ", p.payload.decode("utf-8"))
                 conn.sendto(p.to_bytes(), sender)
-                print("-------- END DATAGRAM ---------\n\n")
+                print("-------- END PACKET ---------\n\n")
 
     except Exception as e:
            print("Error: ", e)
 
-        
+def map_request(message, conn, sender, p):
+    m = message.split(" ")
+    if(m[0].lower() == "GET".lower()):
+            get(message, conn, sender, p)
+    elif(m[0].lower() == "POST".lower()):
+            post(message, conn, sender, p)
+
+def post(filename, conn, sender, p):
+    directory = os.path.dirname(os.path.realpath(__file__))   
+    try:
+        file_content = readFile(directory + "\\" + filename)
+    except:
+        print("Error: ")   
+
+def get(message, conn, sender, p):
+    directory = os.path.dirname(os.path.realpath(__file__))    
+    file_content = ""
+    packet_queue = []
+    try:
+        filename = message.split(" ")[1]
+        file_content = str(readFile(directory + "\\" + filename))
+        print(file_content)
+        #packet_queue = decompose_data(file_content, sender)
+    except:
+        print("Error reading file")
+
+"""
+Decomposes message into 4-bytes payload packets
+
+returns a queue of packets
+
+"""
+def decompose_data(msg, sender):
+    message = list(msg)
+    x = 0
+    queue_size = 0
+    
+    packet_queue = []
+    m = ""
+    syn_number = 0
+    while(x < len(message)):
+        m += message[x]
+        if(x % 4 == 0):
+            #create Packet with payload of 4-bytes 
+            p = Packet(packet_type=0,
+                seq_num=syn_number,
+                peer_ip_addr=sender,
+                peer_port=args.serverport,
+                payload=m.encode("utf-8"))
+            #Add to queue
+            packet_queue.append(p)
+            syn_number += 1
+            queue_size +=1
+            #reset message to ""
+            m = ""
+        elif (x == len(message) - 1):
+            #create Packet with payload of 4-bytes 
+            p = Packet(packet_type=0,
+                seq_num=syn_number,
+                peer_ip_addr=sender,
+                peer_port=args.serverport,
+                payload=m.encode("utf-8"))
+            queue_size += 1
+            #Add to queue
+            packet_queue.append(p)
+            syn_number += 1
+            #reset message to ""
+            m = ""
+        x += 1
+    packet_queue.append(
+        Packet(packet_type=5,
+                seq_num=syn_number,
+                peer_ip_addr=sender,
+                peer_port=args.serverport,
+                payload=str(queue_size).encode("utf-8"))
+    )
+    return packet_queue       
 
 def readFile(filePath):
+        response_code = 0
+        response_body = ""
         if os.path.exists(filePath):
                 response_code = 200
-
-                with open(filePath) as f:
+                with open(filePath) as f: 
                         response_body = f.read()
         else:
                 response_code = 404
                 response_body = "<h1>404 Not Found</h1>"
 
         blank_line = "\r\n"
+
         return ServerResponse(response_code, response_body).send()
+
 
 
 # Usage python udp_server.py [--port port-number]
