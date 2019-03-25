@@ -4,3 +4,6 @@ class Message:
 
     def append(self, payload):
         self.message += payload 
+    
+    def reset(self):
+        self.message = ""

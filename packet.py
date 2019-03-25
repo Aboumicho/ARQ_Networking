@@ -11,7 +11,7 @@ Packet Types
 2: ack
 3: syn-ack
 4: NACK
-5: Starting Transfer
+5: Starting
 """
 
 

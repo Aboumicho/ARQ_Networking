@@ -18,7 +18,7 @@ def run_server(port):
         while True:
             data, sender = conn.recvfrom(1024)
             handle_client(conn, data, sender, message, pq)
-
+        
     finally:
         conn.close()
 
@@ -28,7 +28,7 @@ def handle_client(conn, data, sender, message, pq):
         p = Packet.from_bytes(data)
         while(ack(conn, data, sender) == False):
                 break
-        response_server(conn, data, sender, message, pq)
+        response_server(conn, data, sender, message, pq, p)
 
     except Exception as e:
         print("Error: ", e)
@@ -71,7 +71,7 @@ def ack(conn, data, sender):
         return True
     return False
     
-def response_server(conn, data, sender, message, pq):
+def response_server(conn, data, sender, message, pq, p):
 
     try:
         p = Packet.from_bytes(data)
@@ -84,48 +84,75 @@ def response_server(conn, data, sender, message, pq):
               pq.setSize(n) 
               print(pq)
               #print(message.message)
-              map_request(message.message, conn, sender, p)
+              request_handled = map_request(message.message, conn, sender, pq, p)
+              for packet in request_handled:
+                        print(packet)
+                        if(type(packet.peer_ip_addr) != tuple):
+                                conn.sendto(packet.to_bytes(), sender)
               message.message=""
               pq.reset()
 
         if(p.packet_type == 0 ):
-                message.append(p.payload.decode("utf-8"))
-                pq.add(p)
-                print("------ PACKET RECEIVED ---------")
-                print("Router: ", sender)
-                print("Packet: ", p)
-                print("Payload: ", p.payload.decode("utf-8"))
-                conn.sendto(p.to_bytes(), sender)
-                print("-------- END PACKET ---------\n\n")
-
+                if(pq.Size() == 0):
+                        message.append(p.payload.decode("utf-8"))
+                        pq.add(p)
+                        print("------ PACKET RECEIVED ---------")
+                        print("Router: ", sender)
+                        print("Packet: ", p)
+                        print("Payload: ", p.payload.decode("utf-8"))
+                        conn.sendto(p.to_bytes(), sender)
+                        print("-------- END PACKET ---------\n\n")
+                elif(pq.list[-1].seq_num + 1 == p.seq_num): #If Previous packet received was the good one
+                        message.append(p.payload.decode("utf-8"))
+                        pq.add(p)
+                        print("------ PACKET RECEIVED ---------")
+                        print("Router: ", sender)
+                        print("Packet: ", p)
+                        print("Payload: ", p.payload.decode("utf-8"))
+                        conn.sendto(p.to_bytes(), sender)
+                        print("-------- END PACKET ---------\n\n")
+                else:
+                        print("previous packet not received")
     except Exception as e:
            print("Error: ", e)
+"""
+Response divided into 4-bytes packets
 
-def map_request(message, conn, sender, p):
+Returns list of packets
+"""
+def map_request(message, conn, sender, pq, p):
     m = message.split(" ")
     if(m[0].lower() == "GET".lower()):
-            get(message, conn, sender, p)
+            return get(message, conn, sender, pq, p)
     elif(m[0].lower() == "POST".lower()):
-            post(message, conn, sender, p)
+            return post(message, conn, sender, pq, p)
 
-def post(filename, conn, sender, p):
+def post(filename, conn, sender, pq, p):
     directory = os.path.dirname(os.path.realpath(__file__))   
     try:
         file_content = readFile(directory + "\\" + filename)
-    except:
-        print("Error: ")   
+        return ""
+    except Exception as e:
+        print("Error: " + e)   
 
-def get(message, conn, sender, p):
+def get(message, conn, sender, pq, p):
     directory = os.path.dirname(os.path.realpath(__file__))    
     file_content = ""
     packet_queue = []
     try:
         filename = message.split(" ")[1]
         file_content = str(readFile(directory + "\\" + filename))
-        print(file_content)
-        #packet_queue = decompose_data(file_content, sender)
-    except:
-        print("Error reading file")
+        #Returns list of packets
+        packet_queue = decompose_data(file_content, sender, pq, p)
+        """
+        i = 0
+        while(i < len(packet_queue)):
+                print(packet_queue[i])
+                i += 1
+        """
+        return packet_queue
+    except Exception as e:
+        print("Error: " + e)
 
 """
 Decomposes message into 4-bytes payload packets
@@ -133,11 +160,12 @@ Decomposes message into 4-bytes payload packets
 returns a queue of packets
 
 """
-def decompose_data(msg, sender):
+def decompose_data(msg, sender, pq, p):
     message = list(msg)
     x = 0
     queue_size = 0
-    
+    peer_port = p.peer_port
+    addr = p.peer_ip_addr  
     packet_queue = []
     m = ""
     syn_number = 0
@@ -147,8 +175,8 @@ def decompose_data(msg, sender):
             #create Packet with payload of 4-bytes 
             p = Packet(packet_type=0,
                 seq_num=syn_number,
-                peer_ip_addr=sender,
-                peer_port=args.serverport,
+                peer_ip_addr=addr,
+                peer_port=peer_port,
                 payload=m.encode("utf-8"))
             #Add to queue
             packet_queue.append(p)
@@ -161,7 +189,7 @@ def decompose_data(msg, sender):
             p = Packet(packet_type=0,
                 seq_num=syn_number,
                 peer_ip_addr=sender,
-                peer_port=args.serverport,
+                peer_port=peer_port,
                 payload=m.encode("utf-8"))
             queue_size += 1
             #Add to queue
@@ -174,7 +202,7 @@ def decompose_data(msg, sender):
         Packet(packet_type=5,
                 seq_num=syn_number,
                 peer_ip_addr=sender,
-                peer_port=args.serverport,
+                peer_port=peer_port,
                 payload=str(queue_size).encode("utf-8"))
     )
     return packet_queue       

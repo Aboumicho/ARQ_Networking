@@ -13,6 +13,12 @@ class Queue:
 
     def setSize(self, n):
         self.size = n
-        
+
     def reset(self):
         self.list = []
+
+    def lastElement(self):
+        return self.list[-1]
+
+    def Size(self):
+        return len(self.list)
