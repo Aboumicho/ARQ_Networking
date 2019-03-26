@@ -86,23 +86,20 @@ def response_server(conn, data, sender, message, pq, p):
               #print(message.message)
               request_handled = map_request(message.message, conn, sender, pq, p)
               x = 0
-              for packet in request_handled:                  
-                        try:
-                                packet.peer_ip_addr = p.peer_ip_addr
-                                packet.peer_port = p.peer_port
-                                print(packet)
-                                conn.sendto(packet.to_bytes(), sender)
-                                #data, sender = conn.recvfrom(1024)
-                                #data, sender = conn.recvfrom(1024)
-                                # p = Packet.from_bytes(data)
-                                # print("------ CLIENT RESPONSE RECEIVED ---------")
-                                # print("Router: ", sender)
-                                # print("Packet: ", p)
-                                # print("Payload: ", p.payload.decode("utf-8"))
-                                # conn.sendto(p.to_bytes(), sender)
-                                #print("-------- END PACKET ---------\n\n")
-                                x += 1
-                        except Exception as e: print('Error Packet #5: ', e)              
+              if(message.message.split(" ")[0].lower() == "get".lower()):
+                for packet in request_handled:                  
+                                try:
+                                        if(x==0):
+                                                conn.settimeout(10)
+                                        packet.peer_ip_addr = p.peer_ip_addr
+                                        packet.peer_port = p.peer_port
+                                        print("\n\n-------------SENDING RESPONSE TO CLIENT----------------")
+                                        print(packet)
+                                        print("---------------------RESPONSE--------------------------------\n\n")
+                                        conn.sendto(packet.to_bytes(), sender)
+                                        x += 1
+                                except Exception as e: print('Error Packet #5: ', e)              
+              print("Request: " + message.message.split(" ")[0].lower() + " Received")
               pq.reset()
               message.reset()
         if(p.packet_type == 0 ):
@@ -140,11 +137,13 @@ def map_request(message, conn, sender, pq, p):
     elif(m[0].lower() == "POST".lower()):
             return post(message, conn, sender, pq, p)
 
-def post(filename, conn, sender, pq, p):
+def post(message, conn, sender, pq, p):
     directory = os.path.dirname(os.path.realpath(__file__))   
     try:
-        file_content = readFile(directory + "\\" + filename)
-        return ""
+        filename = message.split(" ")[1]
+        writeFile(str(directory + "\\" + filename), filename, "POST")
+        packet_queue = []
+        return packet_queue
     except Exception as e:
         print("Error: " + e)   
 
@@ -235,7 +234,21 @@ def readFile(filePath):
 
         return ServerResponse(response_code, response_body).send()
 
-
+def writeFile(filePath, file_name, method):
+        print(filePath)
+        my_file = ""
+        try:
+                body =('\r\nHTTP/1.1 200 OK\r\n', # response line
+                'Server: Crude Server\r\n', # header
+                'Headers: {\r\n Content-Type: text/html\r\n}\r\n', # header
+                'file: ' + str(file_name) + "\r\n",
+                'method: ' + method + "\r\n",   
+                "<html>\r\n <body>\r\n  <h1>Request received!</h1>\r\n </body>\r\n</html>\r\n") # response body
+                my_file = open(filePath, "w")
+                request = "".join(body)
+                my_file.write(request)         
+        except: print("ERROR OPENING FILE")
+        finally: my_file.close()
 
 # Usage python udp_server.py [--port port-number]
 parser = argparse.ArgumentParser()

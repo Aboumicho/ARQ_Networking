@@ -1,0 +1,13 @@
+
+HTTP/1.1 200 OK
+Server: Crude Server
+Headers: {
+ Content-Type: text/html
+}
+file: Testing.txt
+method: POST
+<html>
+ <body>
+  <h1>Request received!</h1>
+ </body>
+</html>

@@ -21,7 +21,7 @@ def run_client(router_addr, router_port, server_addr, server_port, args):
     conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         #Syncronize
-        #syn(router_addr, router_port, server_addr, server_port)
+        syn(router_addr, router_port, server_addr, server_port)
         
         #Data Handling
         message = map_request(args)
@@ -43,7 +43,8 @@ def run_client(router_addr, router_port, server_addr, server_port, args):
             response = conn.recv(1024)
             p = Packet.from_bytes(response) 
             packet_type = p.packet_type
-            request.append(p.payload.decode("utf-8"))
+            if(packet_type != 5):
+                request.append(p.payload.decode("utf-8"))
             #conn.sendto(p.to_bytes(), (router_addr, router_port))
             print(p)
         print(request.message)
@@ -65,7 +66,7 @@ Sends a random Sequence Number to Server
 def syn(router_addr, router_port, server_addr, server_port):
     peer_ip = ipaddress.ip_address(socket.gethostbyname(server_addr))
     conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    timeout = 300
+    timeout = 5
     msg = "Hi S"
     
     try:
@@ -204,7 +205,7 @@ def decompose_data(msg, args):
 
 def server_request(args, p):
     conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    timeout = 300
+    timeout = 30
     try:
         print("\n\n-------Sending data packets to server ------------")
                    
@@ -233,16 +234,11 @@ def server_request(args, p):
 def get_server(args):
 	message = 'GET /' + args.url + ' HTTP/1.1'
 	return message
-    #if args.headers: 
-	#	for i in range(len(args.headers)):
-	#		message += args.headers[i] + "\r\n"
-	#connect_server("localhost", message, args)
 
 def post_server(args):
     print(args)
     message = "POST " + args.url + " HTTP/1.1 " + "Host:"+ args.serverhost + " " + "User-Agent: Concordia-HTTP/1.0 "
     return message
-	#connect_server("localhost", message, args)
 	
 def map_request(args):
     message = ""
