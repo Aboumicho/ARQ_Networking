@@ -16,7 +16,8 @@ each Packet sent has to have payload = 4 bytes, which is 4 chars
 """
 
 def run_client(router_addr, router_port, server_addr, server_port, args):
-
+    peer_ip = ipaddress.ip_address(socket.gethostbyname(server_addr))
+    conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         #Syncronize
         #syn(router_addr, router_port, server_addr, server_port)
@@ -26,9 +27,33 @@ def run_client(router_addr, router_port, server_addr, server_port, args):
         packet_list = decompose_data(message, args)
         for packet in packet_list:            
             server_request(args, packet)
-        
-    except:
-        print('Error with execution')
+        response, data = conn.recvfrom(1024)
+        p = Packet.from_bytes(response)
+        print(p)
+        #handle_server_request(router_addr, router_port, server_addr, server_port, args)    
+    except Exception as e:
+        print('Error: ', e)
+
+def handle_server_request(router_addr, router_port, server_addr, server_port, args):
+        peer_ip = ipaddress.ip_address(socket.gethostbyname(server_addr))
+        conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        timeout = 5
+        try:
+            if(p.packet_type == 5):
+                timeout=5
+                conn.settimeout(timeout)
+                print("\n ------Sending Ack to Server-----------")
+                print("You received y = " + str(p.seq_num) + ", Acknowledging sequence number by incrementing. y + 1: " + str(p.seq_num + 1) )
+                p.seq_num = secrets.randbelow(1000)
+                p.packet_type = 3
+                print('Packet: ', p)
+                print('Payload: ' + p.payload.decode("utf-8"))
+                p = Packet.from_bytes()
+                print("----------------------------- \n")
+                conn.sendto(p.to_bytes(), (router_addr, router_port))
+        except Exception as e: print("Error: ", e)
+
+
 """
 
 Method sends first SYN message to Server
@@ -90,6 +115,7 @@ def ack(router_addr, router_port, server_addr, server_port, p):
         By Incrementing Sequence number
         And making Packet Type 3
         """
+
         if(p.packet_type == 2):
             timeout=5
             conn.settimeout(timeout)
@@ -179,7 +205,7 @@ def server_request(args, p):
     conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     timeout = 5
     try:
-        print("-------Sending data packets to server ------------")
+        print("\n\n-------Sending data packets to server ------------")
                    
         conn.sendto(p.to_bytes(), (args.routerhost, args.routerport))
         

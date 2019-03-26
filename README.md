@@ -10,7 +10,7 @@
    python udp_server.py --port 8007
 
 3. Step 3: Run the client
-   python udp_client.py --routerhost localhost --routerport 3000 --serverhost localhost --serverport 8007
+   py udp_client.py --routerhost localhost --routerport 3000 --serverhost localhost --serverport 8007
 
 
 If you found any issue, please report. Thank you.

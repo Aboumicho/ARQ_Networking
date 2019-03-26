@@ -88,7 +88,18 @@ def response_server(conn, data, sender, message, pq, p):
               for packet in request_handled:
                         print(packet)
                         if(type(packet.peer_ip_addr) != tuple):
-                                conn.sendto(packet.to_bytes(), sender)
+                                try:
+                                        print(packet)
+                                        conn.sendto(packet.to_bytes(), sender)
+                                        data, sender = conn.recvfrom(1024)
+                                        p = Packet.from_bytes(data)
+                                        print("------ CLIENT RESPONSE RECEIVED ---------")
+                                        print("Router: ", sender)
+                                        print("Packet: ", p)
+                                        print("Payload: ", p.payload.decode("utf-8"))
+                                        conn.sendto(p.to_bytes(), sender)
+                                        print("-------- END PACKET ---------\n\n")
+                                except Exception as e: print('Error Packet #5: ', e)
               message.message=""
               pq.reset()
 
