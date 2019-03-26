@@ -42,7 +42,7 @@ class Packet:
         return buf
 
     def __repr__(self, *args, **kwargs):
-        return "#%d, peer=%s:%s, size=%d \n" % (self.seq_num, self.peer_ip_addr, self.peer_port, len(self.payload))
+        return "#%d, peer=%s:%s, size=%d, packet_type=%d, payload=%s \n" % (self.seq_num, self.peer_ip_addr, self.peer_port, len(self.payload), self.packet_type, self.payload.decode("utf-8"))
 
     @staticmethod
     def from_bytes(raw):

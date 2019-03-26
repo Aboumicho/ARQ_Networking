@@ -79,30 +79,32 @@ def response_server(conn, data, sender, message, pq, p):
         When all packets from a request were finally delivered
 
         """
+
         if(p.packet_type == 5):
               n = int(p.payload.decode("utf-8"))
               pq.setSize(n) 
-              print(pq)
               #print(message.message)
               request_handled = map_request(message.message, conn, sender, pq, p)
-              for packet in request_handled:
-                        print(packet)
-                        if(type(packet.peer_ip_addr) != tuple):
-                                try:
-                                        print(packet)
-                                        conn.sendto(packet.to_bytes(), sender)
-                                        data, sender = conn.recvfrom(1024)
-                                        p = Packet.from_bytes(data)
-                                        print("------ CLIENT RESPONSE RECEIVED ---------")
-                                        print("Router: ", sender)
-                                        print("Packet: ", p)
-                                        print("Payload: ", p.payload.decode("utf-8"))
-                                        conn.sendto(p.to_bytes(), sender)
-                                        print("-------- END PACKET ---------\n\n")
-                                except Exception as e: print('Error Packet #5: ', e)
-              message.message=""
+              x = 0
+              for packet in request_handled:                  
+                        try:
+                                packet.peer_ip_addr = p.peer_ip_addr
+                                packet.peer_port = p.peer_port
+                                print(packet)
+                                conn.sendto(packet.to_bytes(), sender)
+                                #data, sender = conn.recvfrom(1024)
+                                #data, sender = conn.recvfrom(1024)
+                                # p = Packet.from_bytes(data)
+                                # print("------ CLIENT RESPONSE RECEIVED ---------")
+                                # print("Router: ", sender)
+                                # print("Packet: ", p)
+                                # print("Payload: ", p.payload.decode("utf-8"))
+                                # conn.sendto(p.to_bytes(), sender)
+                                #print("-------- END PACKET ---------\n\n")
+                                x += 1
+                        except Exception as e: print('Error Packet #5: ', e)              
               pq.reset()
-
+              message.reset()
         if(p.packet_type == 0 ):
                 if(pq.Size() == 0):
                         message.append(p.payload.decode("utf-8"))
@@ -199,7 +201,7 @@ def decompose_data(msg, sender, pq, p):
             #create Packet with payload of 4-bytes 
             p = Packet(packet_type=0,
                 seq_num=syn_number,
-                peer_ip_addr=sender,
+                peer_ip_addr=addr,
                 peer_port=peer_port,
                 payload=m.encode("utf-8"))
             queue_size += 1
@@ -212,7 +214,7 @@ def decompose_data(msg, sender, pq, p):
     packet_queue.append(
         Packet(packet_type=5,
                 seq_num=syn_number,
-                peer_ip_addr=sender,
+                peer_ip_addr=addr,
                 peer_port=peer_port,
                 payload=str(queue_size).encode("utf-8"))
     )

@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 import urllib.request
 import os
 import queue
+from Message import Message
 
 """
 Utf-8 uses 1 byte to encode each char 
@@ -25,33 +26,33 @@ def run_client(router_addr, router_port, server_addr, server_port, args):
         #Data Handling
         message = map_request(args)
         packet_list = decompose_data(message, args)
-        for packet in packet_list:            
-            server_request(args, packet)
-        response, data = conn.recvfrom(1024)
-        p = Packet.from_bytes(response)
-        print(p)
+        q = ""
+        request = Message()
+        for packet in packet_list:  
+            print(packet)          
+            q = server_request(args, packet)
+
+        
+        #Reopening the socket
+        conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        conn.bind((router_addr,router_port))
+        #conn.sendto(q.to_bytes(), (router_addr, router_port))
+        packet_type = 0
+        #request.append(q.payload.decode("utf-8"))
+        while(packet_type != 5):
+            response = conn.recv(1024)
+            p = Packet.from_bytes(response) 
+            packet_type = p.packet_type
+            request.append(p.payload.decode("utf-8"))
+            #conn.sendto(p.to_bytes(), (router_addr, router_port))
+            print(p)
+        print(request.message)
+        conn.close()
+        request.reset()       
+        #print(p)
         #handle_server_request(router_addr, router_port, server_addr, server_port, args)    
     except Exception as e:
         print('Error: ', e)
-
-def handle_server_request(router_addr, router_port, server_addr, server_port, args):
-        peer_ip = ipaddress.ip_address(socket.gethostbyname(server_addr))
-        conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        timeout = 5
-        try:
-            if(p.packet_type == 5):
-                timeout=5
-                conn.settimeout(timeout)
-                print("\n ------Sending Ack to Server-----------")
-                print("You received y = " + str(p.seq_num) + ", Acknowledging sequence number by incrementing. y + 1: " + str(p.seq_num + 1) )
-                p.seq_num = secrets.randbelow(1000)
-                p.packet_type = 3
-                print('Packet: ', p)
-                print('Payload: ' + p.payload.decode("utf-8"))
-                p = Packet.from_bytes()
-                print("----------------------------- \n")
-                conn.sendto(p.to_bytes(), (router_addr, router_port))
-        except Exception as e: print("Error: ", e)
 
 
 """
@@ -64,7 +65,7 @@ Sends a random Sequence Number to Server
 def syn(router_addr, router_port, server_addr, server_port):
     peer_ip = ipaddress.ip_address(socket.gethostbyname(server_addr))
     conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    timeout = 5
+    timeout = 300
     msg = "Hi S"
     
     try:
@@ -203,23 +204,27 @@ def decompose_data(msg, args):
 
 def server_request(args, p):
     conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    timeout = 5
+    timeout = 300
     try:
         print("\n\n-------Sending data packets to server ------------")
                    
         conn.sendto(p.to_bytes(), (args.routerhost, args.routerport))
         
-        print('Send "{}" to router'.format(p.payload.decode("utf-8")))
+        print('Send {} to router'.format(p))
+        print("--------------------------------------------------- \n\n")
 
         # Try to receive a response within timeout
         conn.settimeout(timeout)
-        print('Waiting for a response')
+        print('\n\nWaiting for a response')
         response, sender = conn.recvfrom(1024)
         p = Packet.from_bytes(response)
+        print("\n\n---------Received from server -------")
         print('Router: ', sender)
         print('Packet: ', p)
         print('Payload: ' + p.payload.decode("utf-8"))
+        print("-----------------------------------------\n\n")
         print("----------DONE SENDING ----------")
+        return p
     except socket.timeout:
         print('No response after {}s'.format(timeout))
     finally:
