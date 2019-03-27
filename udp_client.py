@@ -66,7 +66,7 @@ Sends a random Sequence Number to Server
 def syn(router_addr, router_port, server_addr, server_port):
     peer_ip = ipaddress.ip_address(socket.gethostbyname(server_addr))
     conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    timeout = 5
+    timeout = 15
     msg = "Hi S"
     
     try:
@@ -119,7 +119,12 @@ def ack(router_addr, router_port, server_addr, server_port, p):
         """
 
         if(p.packet_type == 2):
-            timeout=5
+            """
+            FIRST PACKET 
+            CONTAINING
+            ACK: X + 1
+            """
+            timeout=15
             conn.settimeout(timeout)
             print("\n ------Sending Ack to Server-----------")
             print("You received y = " + str(p.seq_num) + ", Acknowledging sequence number by incrementing. y + 1: " + str(p.seq_num + 1) )
@@ -129,6 +134,9 @@ def ack(router_addr, router_port, server_addr, server_port, p):
             print('Payload: ' + p.payload.decode("utf-8"))
             print("----------------------------- \n")
             conn.sendto(p.to_bytes(), (router_addr, router_port))
+
+            
+            
             return False
         """
         

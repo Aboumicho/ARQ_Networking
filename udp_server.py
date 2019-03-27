@@ -10,6 +10,8 @@ from Queue import Queue
 def run_server(port):
     conn = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
+        timeout = 30
+        conn.settimeout(timeout)
         conn.bind(('', port))
         print('Echo server is listening at', port )
         print("\n")
@@ -18,9 +20,8 @@ def run_server(port):
         while True:
             data, sender = conn.recvfrom(1024)
             handle_client(conn, data, sender, message, pq)
-        
-    finally:
-        conn.close()
+    except socket.timeout: print('No response after {}s'.format(timeout)) 
+
 
 
 def handle_client(conn, data, sender, message, pq):
@@ -90,7 +91,7 @@ def response_server(conn, data, sender, message, pq, p):
                 for packet in request_handled:                  
                                 try:
                                         if(x==0):
-                                                conn.settimeout(10)
+                                                conn.settimeout(15)
                                         packet.peer_ip_addr = p.peer_ip_addr
                                         packet.peer_port = p.peer_port
                                         print("\n\n-------------SENDING RESPONSE TO CLIENT----------------")

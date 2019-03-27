@@ -73,7 +73,7 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "args": [
-                "--routerhost", "localhost", "--routerport", "3000", "--serverhost", "localhost", "--serverport", "8007", "post", "Testing1.txt"
+                "--routerhost", "localhost", "--routerport", "3000", "--serverhost", "localhost", "--serverport", "8007", "post", "Testing2.txt"
             ],
         },
     ]
